@@ -61,7 +61,7 @@ class SampleInfo {
      * MGHA redefined column order and contents to have a lot of things not of interest to others,
      * so have a separate mapping for them.
      */
-    static List<String> MG_COLUMNS = [
+    static List<String> MG_COLUMNS_1 = [
 		"Batch","Sample_ID","DNA_ID","Sex","DNA_Concentration","DNA_Volume","DNA_Quantity","DNA_Quality","DNA_Date","Cohort","Sample_Type",
         "Fastq_Files","Prioritised_Genes","Consanguinity","Variants_File",
         "Pedigree_File","Ethnicity","VariantCall_Group","Capture_Date","Sequencing_Date","Mean_Coverage","Duplicate_Percentage","Machine_ID",
@@ -69,6 +69,18 @@ class SampleInfo {
         "Sequencing_Software","Demultiplex_Software","Hospital_Centre",
         "Hospital_Centre","Sequencing_Contact","Pipeline_Contact","Notes"
     ]
+
+    static List<String> MG_COLUMNS_2 = [
+		"Batch","Sample_ID","DNA_ID","Sex","DNA_Concentration","DNA_Volume","DNA_Quantity","DNA_Quality","DNA_Date","Cohort","Sample_Type",
+        "Fastq_Files","Prioritised_Genes","Consanguinity","Variants_File",
+        "Pedigree_File","Ethnicity","VariantCall_Group","Capture_Date","Sequencing_Date","Mean_Coverage","Duplicate_Percentage","Machine_ID",
+        "DNA_Extraction_Lab","Sequencing_Lab","Library_Preparation","Barcode_Pool_Size","Read_Type","Machine_Type","Sequencing_Chemistry",
+        "Sequencing_Software","Demultiplex_Software","Hospital_Centre",
+        "Hospital_Centre","Sequencing_Contact","Pipeline_Contact","Notes", "Pipeline_Notes", "Analysis_Type"
+    ]
+
+    // versions of mg_columns
+    static List<List<String>> MG_COLUMNS = [ MG_COLUMNS_1, MG_COLUMNS_2 ]
 	
 	/** Id of batch in which the sample was sequenced */
 	String batch
@@ -148,8 +160,12 @@ class SampleInfo {
      * @param fileName
      * @return
      */
+    static parse_mg_sample_info(fileName, int version) {
+        parse_sample_info(fileName, MG_COLUMNS[version-1])
+    }
+    
     static parse_mg_sample_info(fileName) {
-        parse_sample_info(fileName, MG_COLUMNS)
+        parse_mg_sample_info(fileName, 1)
     }
     
     /**
@@ -168,15 +184,17 @@ class SampleInfo {
         
         int columns = line0.size()
         
-        if(columns == MG_COLUMNS.size())
-            return parse_sample_info(fileName, MG_COLUMNS)
-        else
-        if(columns >= 5 && columns <= SIMPLE_COLUMNS.size())
-            return parse_sample_info(fileName, SIMPLE_COLUMNS)
-        else
-            throw new RuntimeException(
-                "Sample information file does not have expected number of columns. Expected either 5 - " +
-                SIMPLE_COLUMNS.size() + " columns or exactly " + MG_COLUMNS.size() + " columns but observed $columns") 
+        for (int idx; idx < MG_COLUMNS.size(); idx++ ) {
+            if(columns == MG_COLUMNS[idx].size()) {
+                return parse_sample_info(fileName, MG_COLUMNS[idx])
+            }
+        }
+        if(columns >= 5 && columns <= SIMPLE_COLUMNS.size()) {
+                return parse_sample_info(fileName, SIMPLE_COLUMNS)
+        }
+        throw new RuntimeException(
+            "Sample information file does not have expected number of columns. Expected either 5 - " +
+            SIMPLE_COLUMNS.size() + " columns or " + MG_COLUMNS_1.size() + " or " + MG_COLUMNS_2.size() + " columns but observed $columns") 
     }
     
     /**
@@ -275,7 +293,7 @@ class SampleInfo {
 
     static List<String> readSampleInfoLines(String fileName) {
         String simpleCol0 = SIMPLE_COLUMNS[0].toLowerCase()
-        String mgCol0 = MG_COLUMNS[0].toLowerCase()
+        String mgCol0 = MG_COLUMNS[0][0].toLowerCase()
         new File(fileName).readLines().grep {
             !it.trim().startsWith('#') && // ignore comment lines
                     !it.trim().toLowerCase().startsWith(simpleCol0) && // ignore header line, if it is present
